@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Редактировать профиль</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f8f8f8;
+      padding: 20px;
+    }
+    .form-container {
+      max-width: 480px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    input, textarea {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #28a745;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <h2>Редактировать профиль</h2>
+    <form method="POST" action="{{ url_for('edit_profile', id=photographer.id) }}" enctype="multipart/form-data">
+      <label for="name">Имя:</label>
+      <input type="text" id="name" name="name" value="{{ photographer.name }}" required>
+      
+      <label for="city">Город:</label>
+      <input type="text" id="city" name="city" value="{{ photographer.city }}">
+      
+      <label for="description">О себе:</label>
+      <textarea id="description" name="description" rows="4">{{ photographer.description }}</textarea>
+      
+      <!-- Обновление аватара (необязательно) -->
+      <label for="avatar_file">Обновить аватар:</label>
+      <input type="file" id="avatar_file" name="avatar_file" accept="image/*">
+      
+      <button type="submit">Сохранить изменения</button>
+    </form>
+    <br>
+    <a href="{{ url_for('profile', id=photographer.id) }}">Вернуться в профиль</a>
+  </div>
+</body>
+</html>

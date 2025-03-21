@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Бронирование</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      padding: 20px;
+    }
+    .booking-container {
+      max-width: 500px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    label {
+      font-size: 18px;
+      color: #555;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      font-size: 18px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 15px;
+      font-size: 20px;
+      background-color: #28a745;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 15px;
+      text-decoration: none;
+      color: #007bff;
+    }
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+  <!-- Подключение jQuery и jQuery UI для календаря -->
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+</head>
+<body>
+  <div class="booking-container">
+    <h2>Бронирование</h2>
+    <form method="POST" action="{{ url_for('book') }}">
+      <!-- Скрытые поля для передачи идентификаторов -->
+      <input type="hidden" name="photographer_id" value="{{ photographer.id }}">
+      {% if client %}
+        <input type="hidden" name="client_id" value="{{ client.id }}">
+      {% endif %}
+      
+      <label for="booking_date">Выберите дату:</label>
+      <input type="text" id="booking_date" name="booking_date" placeholder="дд-мм-гггг" required>
+      
+      <label for="booking_time">Выберите время (опционально):</label>
+      <input type="text" id="booking_time" name="booking_time" placeholder="чч:мм">
+      
+      <button type="submit">Забронировать</button>
+    </form>
+    <a href="{{ url_for('profile', id=photographer.id) }}" class="back-link">Вернуться в профиль</a>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+  <script>
+    $(function() {
+      $("#booking_date").datepicker({
+        dateFormat: "dd-mm-yy",
+        // Все даты активны
+        beforeShowDay: function(date) {
+          return [true, "", ""];
+        }
+      });
+    });
+  </script>
+</body>
+</html>

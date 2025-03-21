@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Галерея фотографов – {{ selected_city }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Подключаем Font Awesome для иконок -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Подключаем Telegram Web Apps API -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    if (window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.expand();
+    }
+  </script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 10px;
+      font-family: Arial, sans-serif;
+      background-color: #f8f8f8;
+      text-align: center;
+    }
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 15px;
+      background: #fff;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    /* Заголовок как flex-контейнер */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .header h1 {
+      font-size: 20px;
+      margin: 0;
+    }
+    /* Кнопка для Личного кабинета (иконка) */
+    .client-btn {
+      display: inline-block;
+      background-color: #0088cc;
+      color: #fff;
+      padding: 8px 12px;
+      text-decoration: none;
+      border-radius: 50%;
+      font-size: 20px;
+      transition: background-color 0.3s ease;
+    }
+    .client-btn:hover {
+      background-color: #0072a1;
+    }
+    /* Блок отображения выбранного города */
+    .city-display {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 5px 10px;
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
+    .city-display i {
+      margin-right: 5px;
+      color: #0088cc;
+    }
+    .gallery {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .photographer {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 10px;
+      margin-bottom: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .photographer-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px;
+      min-height: 120px;
+    }
+    .avatar {
+      width: 98px;
+      height: 98px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 10px;
+    }
+    .photographer-info {
+      margin-top: 10px;
+      text-align: left;
+      width: 100%;
+    }
+    .photographer-info h2 {
+      font-size: 16px;
+      margin: 0;
+    }
+    .photographer-info p {
+      font-size: 14px;
+      margin: 5px 0;
+      color: #666;
+    }
+    .star-rating {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: gold;
+      margin-top: 5px;
+    }
+    .rating-number {
+      font-size: 16px;
+      margin-left: 10px;
+      color: #333;
+    }
+    .portfolio-container {
+      position: relative;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;  /* Добавлено, чтобы скрывать лишнее */
+      width: 100%;       /* Контейнер растягивается по ширине родителя */
+    }
+    .arrow {
+      background-color: #eee;
+      border: none;
+      font-size: 24px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      margin: 0 5px;
+    }
+    .arrow:hover {
+      background-color: #ddd;
+    }
+    .portfolio {
+      display: flex;
+      overflow-x: auto;
+      gap: 10px;
+      padding-bottom: 5px;
+      max-width: 360px;
+      margin: 0 5px;
+      scroll-behavior: smooth;
+      justify-content: flex-start;
+    }
+    .portfolio-image {
+      flex: none;
+      width: 85px;
+      height: 85px;
+      border-radius: 5px;
+      object-fit: cover;
+      cursor: pointer;
+    }
+
+    /* Кнопка "Перейти в профиль" */
+    .profile-btn-container {
+    width: 100%;
+    text-align: center;
+    margin-top: 10px;
+    }
+
+    .profile-btn {
+    display: inline-block;         /* Чтобы ширина кнопки не растягивалась на всю строку */
+    width: 90%;                    /* Занимает 90% от контейнера */
+    max-width: 400px;              /* Максимальная ширина 400px */
+    background-color: #adb5bd;     /* Светлый фон */
+    color: #fff;
+    padding: 10px;                 /* Немного больше padding для лучшего визуала */
+    font-size: 16px;
+    text-decoration: none;
+    border-radius: 5px;
+    margin: 0 auto;
+    box-sizing: border-box;        /* Включает padding в расчёт ширины */
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    .profile-btn:hover {
+    background-color: #919aa3;
+    transform: scale(1.02);
+    }
+
+    /* Модальное окно для увеличенного просмотра изображений */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.9);
+    }
+    .modal.open {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      margin: 0;
+      display: block;
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+      transition: transform 0.3s ease;
+      cursor: grab;
+      -webkit-user-drag: none;
+      user-drag: none;
+    }
+    .modal-arrow {
+      position: absolute;
+      top: 50%;
+      font-size: 60px;
+      color: #fff;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    .modal-left {
+      left: 20px;
+    }
+    .modal-right {
+      right: 20px;
+    }
+    .modal-close {
+      position: absolute;
+      top: 20px;
+      right: 35px;
+      font-size: 40px;
+      color: #fff;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Заголовок и кнопка Личного кабинета -->
+    <div class="header">
+      <h1>Галерея фотографов</h1>
+      <a href="/" class="client-btn" title="Личный кабинет">
+        <i class="fa-solid fa-user"></i>
+      </a>
+    </div>
+    
+    <!-- Блок с выбранным городом (скопировано из Index) -->
+    <div class="city-display">
+      <i class="fa-solid fa-map-marker-alt"></i>
+      <strong>{{ selected_city }}</strong>
+    </div>
+    
+    <!-- Список фотографов -->
+    <div class="gallery">
+      {% for photographer in photographers %}
+        <div class="photographer">
+          <div class="photographer-header">
+            {% if photographer.avatar %}
+              <img class="avatar" src="{{ photographer.avatar }}" alt="{{ photographer.name }}">
+            {% else %}
+              <img class="avatar" src="default-avatar.png" alt="{{ photographer.name }}">
+            {% endif %}
+            <div class="photographer-info">
+              <h2>{{ photographer.name }}</h2>
+              <p>{{ photographer.description }}</p>
+              <div class="star-rating">
+                {% set stars = photographer.rating|round|int %}
+                {% for i in range(stars) %}
+                  ★
+                {% endfor %}
+                {% for i in range(5 - stars) %}
+                  ☆
+                {% endfor %}
+                <span class="rating-number">{{ photographer.rating }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="portfolio-container">
+            <button class="arrow" onclick="scrollLeft({{ photographer.id }})">‹</button>
+            <div class="portfolio" id="portfolio-{{ photographer.id }}">
+              {% if photographer.portfolio_list and photographer.portfolio_list|length > 0 %}
+                {% for image in photographer.portfolio_list %}
+                  <img src="{{ image }}" class="portfolio-image" alt="Portfolio Image">
+                {% endfor %}
+              {% else %}
+                <p>Портфолио отсутствует.</p>
+              {% endif %}
+            </div>
+            <button class="arrow" onclick="scrollRight({{ photographer.id }})">›</button>
+          </div>
+          <!-- Кнопка "Перейти в профиль" -->
+          <div class="profile-btn-container">
+            <a href="/profile/{{ photographer.id }}" class="profile-btn">Перейти в профиль</a>
+          </div>
+        </div>
+      {% endfor %}
+      {% if photographers|length == 0 %}
+        <p>Фотографы не найдены.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Модальное окно для увеличенного просмотра изображений -->
+  <div id="modal" class="modal">
+    <span id="modal-close" class="modal-close">&times;</span>
+    <img id="modal-img" class="modal-content" draggable="false">
+    <button id="modal-left" class="modal-arrow modal-left">‹</button>
+    <button id="modal-right" class="modal-arrow modal-right">›</button>
+  </div>
+
+  <script>
+    function changeCityFilter(city) {
+      window.location.href = '/gallery?city=' + encodeURIComponent(city);
+    }
+
+    // Функции для прокрутки карусели
+    function scrollLeft(id) {
+      const el = document.getElementById(`portfolio-${id}`);
+      if (el) {
+        el.scrollBy({ left: -80, behavior: 'smooth' });
+      }
+    }
+    function scrollRight(id) {
+      const el = document.getElementById(`portfolio-${id}`);
+      if (el) {
+        el.scrollBy({ left: 80, behavior: 'smooth' });
+      }
+    }
+
+    // Модальное окно (лайтбокс)
+    let modal = document.getElementById("modal");
+    let modalImg = document.getElementById("modal-img");
+    let modalLeft = document.getElementById("modal-left");
+    let modalRight = document.getElementById("modal-right");
+    let modalClose = document.getElementById("modal-close");
+
+    let currentPortfolio = [];
+    let currentIndex = 0;
+    let zoomScale = 1;
+    let originX = 0, originY = 0;
+    let isDragging = false;
+    let startX = 0, startY = 0;
+    let currentTranslateX = 0, currentTranslateY = 0;
+    let activePointerId = null;
+    const sensitivity = 0.6; // Коэффициент увеличения смещения
+
+    function openModal(portfolioContainer, index) {
+      currentPortfolio = [];
+      const images = portfolioContainer.getElementsByClassName("portfolio-image");
+      for (let i = 0; i < images.length; i++) {
+        currentPortfolio.push(images[i].src);
+      }
+      currentIndex = index;
+      zoomScale = 1;
+      originX = 0;
+      originY = 0;
+      currentTranslateX = 0;
+      currentTranslateY = 0;
+      modalImg.style.transform = `scale(${zoomScale}) translate(0px, 0px)`;
+      modal.classList.add("open");
+      modalImg.src = currentPortfolio[currentIndex];
+    }
+
+    modalLeft.onclick = function() {
+      if (currentPortfolio.length > 0) {
+        currentIndex = (currentIndex - 1 + currentPortfolio.length) % currentPortfolio.length;
+        resetZoom();
+        modalImg.src = currentPortfolio[currentIndex];
+      }
+    }
+    modalRight.onclick = function() {
+      if (currentPortfolio.length > 0) {
+        currentIndex = (currentIndex + 1) % currentPortfolio.length;
+        resetZoom();
+        modalImg.src = currentPortfolio[currentIndex];
+      }
+    }
+    modalClose.onclick = function() {
+      modal.classList.remove("open");
+    }
+
+    function resetZoom() {
+      zoomScale = 1;
+      originX = 0;
+      originY = 0;
+      currentTranslateX = 0;
+      currentTranslateY = 0;
+      modalImg.style.transform = `scale(${zoomScale}) translate(0px, 0px)`;
+    }
+
+    // Обработчик колёсика мыши для зума – привязан к модальному окну
+    modal.addEventListener("wheel", function(e) {
+      e.preventDefault();
+      let delta = e.deltaY;
+      if (delta < 0) {
+        zoomScale += 0.1;
+      } else {
+        zoomScale -= 0.1;
+        if (zoomScale < 1) zoomScale = 1;
+      }
+      modalImg.style.transform = `scale(${zoomScale}) translate(${originX}px, ${originY}px)`;
+    });
+
+    // Обработчики pointer-событий для перетаскивания (drag)
+    modalImg.addEventListener("pointerdown", function(e) {
+      if (e.button !== 0) return;
+      if (zoomScale > 1) {
+        isDragging = true;
+        activePointerId = e.pointerId;
+        startX = e.clientX;
+        startY = e.clientY;
+        const transform = modalImg.style.transform;
+        const match = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(transform);
+        if (match) {
+          currentTranslateX = parseFloat(match[1]);
+          currentTranslateY = parseFloat(match[2]);
+        } else {
+          currentTranslateX = 0;
+          currentTranslateY = 0;
+        }
+        modalImg.setPointerCapture(e.pointerId);
+        modalImg.style.cursor = "grabbing";
+      }
+    });
+    document.addEventListener("pointermove", function(e) {
+      if (isDragging && e.pointerId === activePointerId) {
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        const newTranslateX = currentTranslateX + dx * sensitivity;
+        const newTranslateY = currentTranslateY + dy * sensitivity;
+        originX = newTranslateX;
+        originY = newTranslateY;
+        modalImg.style.transform = `scale(${zoomScale}) translate(${newTranslateX}px, ${newTranslateY}px)`;
+      }
+    });
+    document.addEventListener("pointerup", function(e) {
+      if (isDragging && e.pointerId === activePointerId) {
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        currentTranslateX += dx * sensitivity;
+        currentTranslateY += dy * sensitivity;
+        isDragging = false;
+        modalImg.style.cursor = "grab";
+        modalImg.releasePointerCapture(activePointerId);
+        activePointerId = null;
+      }
+    });
+    document.addEventListener("pointercancel", function(e) {
+      if (isDragging && e.pointerId === activePointerId) {
+        isDragging = false;
+        modalImg.style.cursor = "grab";
+        modalImg.releasePointerCapture(activePointerId);
+        activePointerId = null;
+      }
+    });
+
+    // Назначение обработчиков клика на изображения карусели
+    document.addEventListener("DOMContentLoaded", function() {
+      const portfolioImages = document.getElementsByClassName("portfolio-image");
+      for (let i = 0; i < portfolioImages.length; i++) {
+        portfolioImages[i].addEventListener("click", function() {
+          const portfolioContainer = this.parentElement;
+          const images = portfolioContainer.getElementsByClassName("portfolio-image");
+          const index = Array.from(images).indexOf(this);
+          openModal(portfolioContainer, index);
+        });
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>{% if client %}Личный кабинет – {{ client.name }}{% else %}Добро пожаловать{% endif %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Подключаем Font Awesome для иконок -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Подключаем Telegram Web Apps API -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    if (window.Telegram && window.Telegram.WebApp) {
+      Telegram.WebApp.expand();
+    }
+    // Если в URL отсутствует tg_id, пробуем получить данные из Telegram
+    if (!window.location.search.includes("tg_id") && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
+      const user = Telegram.WebApp.initDataUnsafe.user;
+      const newUrl = window.location.origin + "/?tg_id=" + user.id + "&first_name=" + encodeURIComponent(user.first_name);
+      window.location.replace(newUrl);
+    }
+  </script>
+  <style>
+    body {
+      margin: 0;
+      padding: 10px;
+      font-family: sans-serif;
+      background-color: #fff;
+    }
+    .profile-container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 15px;
+      background: #f8f8f8;
+      border-radius: 5px;
+    }
+    .profile-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-right: 10px;
+    }
+    .profile-info {
+      flex: 1;
+      text-align: center;
+    }
+    .profile-info h2 {
+      font-size: 20px;
+      margin: 0;
+    }
+    .city-filter {
+      margin-top: 10px;
+      text-align: left;
+    }
+    .city-filter label {
+      font-size: 16px;
+      margin-right: 5px;
+    }
+    .city-filter select {
+      font-size: 16px;
+      padding: 5px;
+      width: 100%;
+      margin-bottom: 5px;
+    }
+    .orders {
+      margin-top: 15px;
+      margin-bottom: 15px;
+      text-align: left;
+    }
+    .orders h3 {
+      margin-bottom: 5px;
+      font-size: 16px;
+    }
+    .orders ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .orders li {
+      font-size: 14px;
+      padding: 4px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .button-container {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .choose-btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #0088cc;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 5px;
+      font-size: 16px;
+      transition: background-color 0.3s ease;
+      margin-bottom: 10px;
+    }
+    .choose-btn:hover {
+      background-color: #0072a1;
+    }
+    /* Кнопка "Я фотограф!" */
+    .photographer-btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #ff5722; /* ярко-красно-оранжевый */
+      color: #fff;
+      text-decoration: none;
+      border-radius: 5px;
+      font-size: 16px;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+    .photographer-btn:hover {
+      background-color: #e64a19;
+      transform: scale(1.02);
+    }
+  </style>
+</head>
+<body>
+  <div class="profile-container">
+    {% if client %}
+      <!-- Шапка профиля -->
+      <div class="profile-header">
+        {% if client.avatar %}
+          <img class="avatar" src="{{ client.avatar }}" alt="{{ client.name }}">
+        {% else %}
+          <i class="fa-solid fa-user" style="font-size: 60px; color: #ccc; margin-right: 10px;"></i>
+        {% endif %}
+        <div class="profile-info">
+          <h2>Привет, {{ client.name }}!</h2>
+        </div>
+      </div>
+      
+      <!-- Блок выбора страны и города -->
+      <div class="city-filter">
+        <label for="my-country-select">Моя страна:</label>
+        <select id="my-country-select" onchange="changeCountry(this.value)">
+          {% for country, city_list in cities_grouped|dictsort %}
+            <option value="{{ country }}" {% if client.country and client.country == country %}selected{% endif %}>{{ country }}</option>
+          {% endfor %}
+        </select>
+        <label for="my-city-select">Мой город:</label>
+        <select id="my-city-select" onchange="changeCity(this.value)">
+          {% if client and client.country and cities_grouped[client.country] %}
+            {% for city in cities_grouped[client.country] | sort(attribute='name') %}
+              <option value="{{ city.name }}" {% if client.city and client.city == city.name %}selected{% endif %}>{{ city.name }}</option>
+            {% endfor %}
+          {% else %}
+            {% set sorted_countries = cities_grouped|dictsort %}
+            {% set first_country = sorted_countries[0][0] %}
+            {% for city in cities_grouped[first_country] | sort(attribute='name') %}
+              <option value="{{ city.name }}">{{ city.name }}</option>
+            {% endfor %}
+          {% endif %}
+        </select>
+      </div>
+      
+      <!-- Блок заказов -->
+      <div class="orders">
+        <h3>Ваши заказы</h3>
+        {% if orders and orders|length > 0 %}
+          <ul>
+            {% for order in orders %}
+              <li>Заказ №{{ order.id }} от {{ order.date }} – {{ order.status }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>Заказов пока нет.</p>
+        {% endif %}
+      </div>
+    {% else %}
+      <h2>Добро пожаловать!</h2>
+      <p>Пожалуйста, авторизуйтесь через Telegram, чтобы увидеть ваш личный кабинет.</p>
+    {% endif %}
+    
+    <!-- Блок с кнопками -->
+    <div class="button-container">
+      <a href="javascript:goToGallery()" class="choose-btn">Выбрать фотографа</a>
+      <br>
+      <a href="/switch_role?tg_id={{ client.telegram_id }}" class="photographer-btn">Я фотограф!</a>
+    </div>
+  </div>
+  
+  <script>
+    // Передаём сгруппированные города из шаблона в JavaScript
+    const citiesGrouped = {{ cities_grouped | tojson }};
+    
+    // Функция обновления списка городов на основе выбранной страны
+    function updateCityDropdown(selectedCountry) {
+      const citySelect = document.getElementById('my-city-select');
+      citySelect.innerHTML = "";  // очищаем список
+      if (citiesGrouped[selectedCountry]) {
+        const sortedCities = citiesGrouped[selectedCountry].sort((a, b) => a.name.localeCompare(b.name));
+        sortedCities.forEach(function(city) {
+          const opt = document.createElement('option');
+          opt.value = city.name;
+          opt.text = city.name;
+          {% if client.city %}
+          if (city.name === "{{ client.city }}") {
+            opt.selected = true;
+          }
+          {% endif %}
+          citySelect.add(opt);
+        });
+      }
+    }
+    
+    // Функция обновления страны через AJAX
+    function changeCountry(country) {
+      console.log("Выбрана страна: " + country);
+      fetch('/update_country', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tg_id: '{{ client.telegram_id }}',
+          country: country
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+         if(data.success) {
+           console.log("Страна обновлена: " + country);
+           updateCityDropdown(country);  // обновляем список городов для выбранной страны
+         } else {
+           console.error("Ошибка обновления страны");
+         }
+      })
+      .catch(error => console.error("Ошибка:", error));
+    }
+    
+    // Функция обновления города через AJAX
+    function changeCity(city) {
+      console.log("Выбран город: " + city);
+      fetch('/update_city', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tg_id: '{{ client.telegram_id }}',
+          city: city
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+         if(data.success) {
+           console.log("Город обновлен: " + city);
+         } else {
+           console.error("Ошибка обновления города");
+         }
+      })
+      .catch(error => console.error("Ошибка:", error));
+    }
+    
+    // Функция для перехода в галерею с выбранным городом
+    function goToGallery() {
+      const selectedCity = document.getElementById('my-city-select').value;
+      window.location.href = "/gallery?city=" + encodeURIComponent(selectedCity) + "&tg_id={{ client.telegram_id }}";
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Стать фотографом</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      background: #f8f8f8; 
+      padding: 20px; 
+    }
+    .form-container { 
+      max-width: 480px; 
+      margin: 0 auto; 
+      background: #fff; 
+      padding: 20px; 
+      border-radius: 5px; 
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+    }
+    input, textarea { 
+      width: 100%; 
+      padding: 8px; 
+      margin: 5px 0 15px; 
+      border: 1px solid #ccc; 
+      border-radius: 4px; 
+      box-sizing: border-box; 
+    }
+    button { 
+      padding: 10px 20px; 
+      background-color: #28a745; 
+      color: #fff; 
+      border: none; 
+      border-radius: 5px; 
+      cursor: pointer; 
+      transition: background-color 0.3s ease; 
+    }
+    button:hover { 
+      background-color: #218838; 
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <h2>Стать фотографом</h2>
+    <form method="POST" action="/switch_role?tg_id={{ client.telegram_id }}" enctype="multipart/form-data">
+      <!-- Загрузка аватарки -->
+      <label for="avatar_file">Загрузите аватар (файл):</label>
+      <input type="file" id="avatar_file" name="avatar_file" accept="image/*">
+      
+      <!-- О себе -->
+      <label for="about">О себе:</label>
+      <textarea id="about" name="about" placeholder="Расскажите о себе"></textarea>
+      
+      <!-- Опыт -->
+      <label for="experience">Опыт:</label>
+      <input type="text" id="experience" name="experience" placeholder="Ваш опыт">
+      
+      <!-- Оборудование -->
+      <label for="equipment">Оборудование:</label>
+      <input type="text" id="equipment" name="equipment" placeholder="Укажите оборудование">
+      
+      <!-- Портфолио -->
+      <label for="portfolio_files">Портфолио (выберите несколько файлов):</label>
+      <input type="file" id="portfolio_files" name="portfolio_files" multiple accept="image/*">
+      
+      <button type="submit">Подать заявку</button>
+    </form>
+  </div>
+</body>
+</html>
