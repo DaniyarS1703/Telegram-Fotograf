@@ -38,29 +38,89 @@
     button:hover {
       background-color: #218838;
     }
+    /* Стили для превью изображения */
+    #avatar_preview {
+      display: block;
+      max-width: 100%;
+      max-height: 200px;
+      margin-top: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .error-message {
+      color: red;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
   <div class="form-container">
     <h2>Редактировать профиль</h2>
-    <form method="POST" action="{{ url_for('edit_profile', id=photographer.id) }}" enctype="multipart/form-data">
+    <form id="editProfileForm" method="POST" action="{{ url_for('edit_profile', id=photographer.id) }}" enctype="multipart/form-data">
       <label for="name">Имя:</label>
       <input type="text" id="name" name="name" value="{{ photographer.name }}" required>
       
       <label for="city">Город:</label>
-      <input type="text" id="city" name="city" value="{{ photographer.city }}">
+      <input type="text" id="city" name="city" value="{{ photographer.city }}" required>
       
       <label for="description">О себе:</label>
-      <textarea id="description" name="description" rows="4">{{ photographer.description }}</textarea>
+      <textarea id="description" name="description" rows="4" required>{{ photographer.description }}</textarea>
       
       <!-- Обновление аватара (необязательно) -->
       <label for="avatar_file">Обновить аватар:</label>
       <input type="file" id="avatar_file" name="avatar_file" accept="image/*">
+      <!-- Превью изображения -->
+      <img id="avatar_preview" src="{{ photographer.avatar if photographer.avatar else 'default-avatar.png' }}" alt="Avatar Preview">
+      
+      <!-- Блок для отображения ошибок -->
+      <div id="file_error" class="error-message" style="display:none;"></div>
       
       <button type="submit">Сохранить изменения</button>
     </form>
-    <br>
-    <a href="{{ url_for('profile', id=photographer.id) }}">Вернуться в профиль</a>
   </div>
+  
+  <script>
+    // Обновление превью при выборе файла
+    const fileInput = document.getElementById('avatar_file');
+    const previewImg = document.getElementById('avatar_preview');
+    const fileError = document.getElementById('file_error');
+    
+    fileInput.addEventListener('change', function(event) {
+      fileError.style.display = 'none';
+      const file = this.files[0];
+      if (file) {
+        const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        if (!validTypes.includes(file.type)) {
+          fileError.textContent = 'Неверный тип файла. Пожалуйста, выберите JPG, PNG или GIF.';
+          fileError.style.display = 'block';
+          fileInput.value = '';
+          previewImg.src = "{{ photographer.avatar if photographer.avatar else 'default-avatar.png' }}";
+          return;
+        }
+        // Ограничим размер файла до 2 МБ (при необходимости)
+        const maxSize = 2 * 1024 * 1024; // 2 МБ
+        if (file.size > maxSize) {
+          fileError.textContent = 'Размер файла превышает допустимый лимит (2 МБ).';
+          fileError.style.display = 'block';
+          fileInput.value = '';
+          previewImg.src = "{{ photographer.avatar if photographer.avatar else 'default-avatar.png' }}";
+          return;
+        }
+        // Обновление превью с использованием URL.createObjectURL
+        previewImg.src = URL.createObjectURL(file);
+      }
+    });
+    
+    // Дополнительная валидация при отправке формы
+    document.getElementById('editProfileForm').addEventListener('submit', function(e) {
+      // Здесь можно добавить дополнительные проверки при необходимости
+      // Если есть ошибки, отмените отправку формы:
+      if (fileError.style.display === 'block') {
+        e.preventDefault();
+        alert('Пожалуйста, исправьте ошибки в форме перед отправкой.');
+      }
+    });
+  </script>
 </body>
 </html>
