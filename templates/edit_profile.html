@@ -38,7 +38,7 @@
     button:hover {
       background-color: #218838;
     }
-    /* Стили для превью изображения */
+    /* Превью аватара */
     #avatar_preview {
       display: block;
       max-width: 100%;
@@ -47,10 +47,76 @@
       border: 1px solid #ccc;
       border-radius: 4px;
     }
+    /* Старые файлы портфолио в две колонки */
+    .existing-portfolio-container {
+      margin: 10px 0;
+      display: grid;                 /* используем CSS Grid */
+      grid-template-columns: repeat(2, 1fr); /* две колонки одинаковой ширины */
+      gap: 10px;
+    }
+    .existing-portfolio-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .existing-portfolio-item img {
+      max-width: 70px;
+      max-height: 70px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    /* Предпросмотр новых файлов */
+    #new-portfolio-preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    #new-portfolio-preview img {
+      max-width: 100px;
+      max-height: 100px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
     .error-message {
       color: red;
       font-size: 14px;
       margin-bottom: 10px;
+    }
+    /* Скрытые input'ы */
+    .hidden-file-input {
+      display: none; /* не отображаем в интерфейсе */
+    }
+    /* Кнопка "+" с пояснением */
+    .add-file-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    #addFileButton {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 50px;
+      height: 50px;
+      font-size: 28px;
+      line-height: 1;
+      background-color: #28a745;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    #addFileButton:hover {
+      background-color: #218838;
+      transform: scale(1.05);
+    }
+    .add-file-text {
+      font-size: 16px;
+      color: #333;
     }
   </style>
 </head>
@@ -58,6 +124,8 @@
   <div class="form-container">
     <h2>Редактировать профиль</h2>
     <form id="editProfileForm" method="POST" action="{{ url_for('edit_profile', id=photographer.id) }}" enctype="multipart/form-data">
+      
+      <!-- Поля профиля -->
       <label for="name">Имя:</label>
       <input type="text" id="name" name="name" value="{{ photographer.name }}" required>
       
@@ -67,59 +135,136 @@
       <label for="description">О себе:</label>
       <textarea id="description" name="description" rows="4" required>{{ photographer.description }}</textarea>
       
-      <!-- Обновление аватара (необязательно) -->
+      <!-- Обновление аватара -->
       <label for="avatar_file">Обновить аватар:</label>
       <input type="file" id="avatar_file" name="avatar_file" accept="image/*">
-      <!-- Превью изображения -->
       <img id="avatar_preview" src="{{ photographer.avatar if photographer.avatar else 'default-avatar.png' }}" alt="Avatar Preview">
+      <div id="avatar_error" class="error-message" style="display:none;"></div>
       
-      <!-- Блок для отображения ошибок -->
-      <div id="file_error" class="error-message" style="display:none;"></div>
+      <!-- Отображение старых фото в две колонки -->
+      <label>Старые фото портфолио (отметьте для удаления):</label>
+      <div class="existing-portfolio-container">
+        {% if photographer.portfolio_list and photographer.portfolio_list|length > 0 %}
+          {% for image in photographer.portfolio_list %}
+            <div class="existing-portfolio-item">
+              <img src="{{ image }}" alt="Portfolio Image">
+              <label>
+                <input type="checkbox" name="remove_images" value="{{ image }}"> Удалить
+              </label>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p>Нет старых фотографий в портфолио.</p>
+        {% endif %}
+      </div>
+      
+      <!-- Кнопка "+" слева и комментарий (Добавить файлы...) справа -->
+      <div class="add-file-container">
+        <button type="button" id="addFileButton">+</button>
+        <span class="add-file-text">(Добавить файлы...)</span>
+      </div>
+      
+      <!-- Контейнер для скрытых input'ов -->
+      <div id="hiddenInputsContainer"></div>
+      
+      <!-- Предпросмотр выбранных файлов -->
+      <div id="new-portfolio-preview"></div>
+      <div id="portfolio_error" class="error-message" style="display:none;"></div>
       
       <button type="submit">Сохранить изменения</button>
     </form>
   </div>
   
   <script>
-    // Обновление превью при выборе файла
-    const fileInput = document.getElementById('avatar_file');
-    const previewImg = document.getElementById('avatar_preview');
-    const fileError = document.getElementById('file_error');
-    
-    fileInput.addEventListener('change', function(event) {
-      fileError.style.display = 'none';
-      const file = this.files[0];
-      if (file) {
+    document.addEventListener("DOMContentLoaded", function() {
+      console.log("DOMContentLoaded fired");
+      
+      // Функция проверки типа и размера файла
+      function validateFile(file, errorContainer) {
         const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
-        if (!validTypes.includes(file.type)) {
-          fileError.textContent = 'Неверный тип файла. Пожалуйста, выберите JPG, PNG или GIF.';
-          fileError.style.display = 'block';
-          fileInput.value = '';
-          previewImg.src = "{{ photographer.avatar if photographer.avatar else 'default-avatar.png' }}";
-          return;
-        }
-        // Ограничим размер файла до 2 МБ (при необходимости)
         const maxSize = 2 * 1024 * 1024; // 2 МБ
-        if (file.size > maxSize) {
-          fileError.textContent = 'Размер файла превышает допустимый лимит (2 МБ).';
-          fileError.style.display = 'block';
-          fileInput.value = '';
-          previewImg.src = "{{ photographer.avatar if photographer.avatar else 'default-avatar.png' }}";
-          return;
+        if (!validTypes.includes(file.type)) {
+          errorContainer.textContent = 'Неверный тип файла. Допустимы JPG, PNG или GIF.';
+          errorContainer.style.display = 'block';
+          return false;
         }
-        // Обновление превью с использованием URL.createObjectURL
-        previewImg.src = URL.createObjectURL(file);
+        if (file.size > maxSize) {
+          errorContainer.textContent = 'Размер файла превышает лимит в 2 МБ.';
+          errorContainer.style.display = 'block';
+          return false;
+        }
+        errorContainer.style.display = 'none';
+        return true;
       }
-    });
-    
-    // Дополнительная валидация при отправке формы
-    document.getElementById('editProfileForm').addEventListener('submit', function(e) {
-      // Здесь можно добавить дополнительные проверки при необходимости
-      // Если есть ошибки, отмените отправку формы:
-      if (fileError.style.display === 'block') {
-        e.preventDefault();
-        alert('Пожалуйста, исправьте ошибки в форме перед отправкой.');
-      }
+      
+      // Превью для аватара
+      const avatarInput = document.getElementById('avatar_file');
+      const avatarPreview = document.getElementById('avatar_preview');
+      const avatarError = document.getElementById('avatar_error');
+      
+      avatarInput.addEventListener('change', function() {
+        console.log("Avatar input changed");
+        const file = this.files[0];
+        if (file) {
+          if (validateFile(file, avatarError)) {
+            avatarPreview.src = URL.createObjectURL(file);
+            console.log("Avatar preview updated");
+          } else {
+            this.value = '';
+            avatarPreview.src = "{{ photographer.avatar if photographer.avatar else 'default-avatar.png' }}";
+          }
+        }
+      });
+      
+      // Кнопка "+" для добавления нескольких файлов
+      const addFileButton = document.getElementById('addFileButton');
+      const hiddenInputsContainer = document.getElementById('hiddenInputsContainer');
+      const newPortfolioPreview = document.getElementById('new-portfolio-preview');
+      const portfolioError = document.getElementById('portfolio_error');
+      
+      addFileButton.addEventListener('click', function() {
+        console.log("Нажата кнопка + для добавления файлов");
+        
+        // Создаём скрытый input с multiple
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'file';
+        hiddenInput.name = 'portfolio_files';
+        hiddenInput.accept = 'image/*';
+        hiddenInput.multiple = true;  // Разрешаем выбрать сразу несколько файлов
+        hiddenInput.classList.add('hidden-file-input');
+        
+        // Обработчик для предпросмотра
+        hiddenInput.addEventListener('change', function() {
+          console.log("Выбраны файлы:", this.files);
+          const filesArray = Array.from(this.files);
+          filesArray.forEach(file => {
+            if (validateFile(file, portfolioError)) {
+              const img = document.createElement('img');
+              img.src = URL.createObjectURL(file);
+              img.alt = "New Portfolio";
+              newPortfolioPreview.appendChild(img);
+              console.log("Добавлено предпросмотр нового файла:", file.name);
+            } else {
+              // Если один из файлов не подходит, убираем его из набора
+              // (или можно удалить весь input, если нужно)
+            }
+          });
+        });
+        
+        // Добавляем скрытый input в DOM
+        hiddenInputsContainer.appendChild(hiddenInput);
+        
+        // Имитируем клик, чтобы сразу открыть диалог выбора файлов
+        hiddenInput.click();
+      });
+      
+      // Дополнительная валидация при отправке формы
+      document.getElementById('editProfileForm').addEventListener('submit', function(e) {
+        if (avatarError.style.display === 'block' || portfolioError.style.display === 'block') {
+          e.preventDefault();
+          alert('Пожалуйста, исправьте ошибки в форме перед отправкой.');
+        }
+      });
     });
   </script>
 </body>

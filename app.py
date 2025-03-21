@@ -210,8 +210,16 @@ def switch_role():
 @app.route('/edit_profile/<int:id>', methods=['GET', 'POST'])
 def edit_profile(id):
     photographer = Photographer.query.get_or_404(id)
+    
     if request.method == 'POST':
-        # Обновляем поля профиля
+        # Если пользователь отметил старые фото для удаления, удаляем их
+        remove_list = request.form.getlist('remove_images')
+        if remove_list:
+            existing_portfolio = photographer.get_portfolio()
+            updated_portfolio = [img for img in existing_portfolio if img not in remove_list]
+            photographer.portfolio = json.dumps(updated_portfolio)
+        
+        # Обновляем текстовые поля
         photographer.name = request.form.get('name', photographer.name)
         photographer.city = request.form.get('city', photographer.city)
         photographer.description = request.form.get('description', photographer.description)
@@ -224,9 +232,26 @@ def edit_profile(id):
                 photographer.avatar = result.get('secure_url')
                 photographer.avatar_public_id = result.get('public_id')
         
+        # Обработка новых файлов портфолио
+        portfolio_files = request.files.getlist('portfolio_files')
+        if portfolio_files:
+            new_portfolio_urls = []
+            for file in portfolio_files:
+                if file and file.filename:
+                    result = cloudinary.uploader.upload(file)
+                    secure_url = result.get('secure_url')
+                    if secure_url:
+                        new_portfolio_urls.append(secure_url)
+            if new_portfolio_urls:
+                existing_portfolio = photographer.get_portfolio()
+                updated_portfolio = existing_portfolio + new_portfolio_urls
+                photographer.portfolio = json.dumps(updated_portfolio)
+        
         db.session.commit()
         return redirect(url_for('profile', id=photographer.id))
     
+    # Для GET-запроса устанавливаем список портфолио для отображения
+    photographer.portfolio_list = photographer.get_portfolio()
     return render_template('edit_profile.html', photographer=photographer)
 # --- Конец маршрута редактирования профиля ---
 

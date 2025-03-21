@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Test File Input</title>
+</head>
+<body>
+  <h1>Тест поля для файлов</h1>
+  <input type="file" id="testInput" multiple>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      console.log("DOMContentLoaded fired (test)");
+      const testInput = document.getElementById("testInput");
+      testInput.addEventListener("change", function() {
+        console.log("Files changed:", this.files);
+      });
+    });
+  </script>
+</body>
+</html>
